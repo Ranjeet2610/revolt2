@@ -497,13 +497,23 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 		}
 	}
 
-	async function initialize_puppeteer() {
-		// Initialize Puppeteer and create a new page
-		browser = await puppeteer.launch({
-			userDataDir: `./${IDENTIFIER_USER}/browser-userdata`,
-			headless: force_headful ? false : IS_HEADLESS,
-			args: ["--disable-blink-features=AutomationControlled"],
-		});
+	browser = await puppeteer.launch({
+  userDataDir: `./${IDENTIFIER_USER}/browser-userdata`,
+  headless: force_headful ? false : IS_HEADLESS,
+  executablePath: process.env.CHROME_PATH || '/snap/bin/chromium',
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--single-process",
+    "--disable-gpu",
+    "--window-size=1920,1080",
+    "--hide-scrollbars",
+    "--mute-audio",
+    "--disable-blink-features=AutomationControlled"
+  ],
+  ignoreHTTPSErrors: true,
+});
 		const page = await browser.newPage();
 		page.goto("https://revolt.onech.at/");
 
