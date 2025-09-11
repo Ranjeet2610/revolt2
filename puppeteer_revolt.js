@@ -502,7 +502,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 		browser = await puppeteer.launch({
   userDataDir: `./${IDENTIFIER_USER}/browser-userdata`,
   headless: force_headful ? false : IS_HEADLESS,
-  executablePath: process.env.CHROME_PATH || '/snap/bin/chromium',
+  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable',
   args: [
     "--no-sandbox",
     "--disable-setuid-sandbox",
@@ -515,6 +515,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
     "--disable-blink-features=AutomationControlled"
   ],
   ignoreHTTPSErrors: true,
+  dumpio: true   // 👈 add this line
 });
 		const page = await browser.newPage();
 		page.goto("https://revolt.onech.at/");
