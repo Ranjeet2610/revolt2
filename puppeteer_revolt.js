@@ -497,7 +497,9 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 		}
 	}
 
-	browser = await puppeteer.launch({
+	async function initialize_puppeteer() {
+		// Initialize Puppeteer and create a new page
+		browser = await puppeteer.launch({
   userDataDir: `./${IDENTIFIER_USER}/browser-userdata`,
   headless: force_headful ? false : IS_HEADLESS,
   executablePath: process.env.CHROME_PATH || '/snap/bin/chromium',
@@ -1531,7 +1533,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 	// 		console.log(`--------------------------`);
 	// 	}
 	// });
-
+}
 
 function getRandomInt(min, max) {
 	min = parseInt(min);
