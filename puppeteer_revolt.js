@@ -1531,7 +1531,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 	// 		console.log(`--------------------------`);
 	// 	}
 	// });
-}
+
 
 function getRandomInt(min, max) {
 	min = parseInt(min);
