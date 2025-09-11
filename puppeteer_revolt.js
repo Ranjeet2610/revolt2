@@ -504,17 +504,17 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
   headless: 'new',   // ✅ force new headless
   executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable',
   args: [
-    "--headless=new",                  // ✅ critical fix
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--single-process",
-    "--disable-gpu",
-    "--window-size=1920,1080",
-    "--hide-scrollbars",
-    "--mute-audio",
-    "--disable-blink-features=AutomationControlled"
-  ],
+  "--headless=new",
+  "--no-sandbox",
+  "--disable-setuid-sandbox",
+  "--disable-dev-shm-usage",
+  "--single-process",
+  "--disable-gpu",
+  "--window-size=1920,1080",
+  "--hide-scrollbars",
+  "--mute-audio",
+  "--disable-blink-features=AutomationControlled"
+],
   ignoreHTTPSErrors: true,
   dumpio: true
 });
