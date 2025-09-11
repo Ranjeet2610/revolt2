@@ -1489,9 +1489,9 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 		addLog({ type: "DebugMessage", message: "Trying to start bot dashboard server" });
 
 		server.listen(port, () => {
-			console.log(`Now listening to: http://localhost:${port}`);
-			open(`http://localhost:${port}`);
-			addLog({ type: "DebugMessage", message: `Now listening to: http://localhost:${port}` });
+			console.log(`Now listening to: http://35.154.130.122:${port}`);
+			open(`http://35.154.130.122:${port}`);
+			addLog({ type: "DebugMessage", message: `Now listening to: http://35.154.130.122:${port}` });
 		});
 	} catch (error) {
 		if (error.code == "ERR_SERVER_ALREADY_LISTEN") {
@@ -1517,7 +1517,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 
 	// 	if (key.name === "u") {
 	// 		console.log(`--------------------------`);
-	// 		console.log(`http://localhost:${port}`);
+	// 		console.log(`http://35.154.130.122:${port}`);
 	// 		console.log(`--------------------------`);
 	// 	}
 	// });
@@ -1664,8 +1664,8 @@ global_app.post("/api/add_server", async (req, res) => {
 });
 
 global_server.listen(port, () => {
-	console.log(`Now listening to: http://localhost:${port}`);
-	open(`http://localhost:${port}`);
+	console.log(`Now listening to: http://35.154.130.122:${port}`);
+	open(`http://35.154.130.122:${port}`);
 
 	emit_server_info();
 });
@@ -1679,7 +1679,7 @@ rl.input.on("keypress", async (char, key) => {
 
 	if (key.name === "u") {
 		console.log(`--------------------------`);
-		console.log(`http://localhost:${port}`);
+		console.log(`http://35.154.130.122:${port}`);
 		console.log(`--------------------------`);
 	}
 });
