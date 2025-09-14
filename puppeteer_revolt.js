@@ -30,13 +30,16 @@ if (process.platform == "win32") {
 const args = argsParser(process.argv);
 var ports = {};
 
+// Check for headless mode override - default to false for testing
+const IS_HEADLESS_OVERRIDE = args.headless !== undefined ? args.headless === 'true' : false;
+
 const rl = createInterface({
 	input: process.stdin,
 	output: process.stdout,
 	terminal: true,
 });
 
-async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMEDIATELY = true) {
+async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERRIDE, START_IMMEDIATELY = true) {
 	const original_username = IDENTIFIER_USER;
 
 	var is_running = false;
@@ -482,16 +485,19 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 	});
 
 	async function start() {
+		console.log(`🤖 Bot status: ${isBotOn.status ? 'ON' : 'OFF'}`);
 		if (isBotOn.status) {
 			try {
 				// io.emit("serverInfo", clientInfo);
+				console.log("🚀 Starting Puppeteer browser...");
 				addLog({ type: "DebugMessage", message: "Trying to open Puppeteer browser" });
 				await initialize_puppeteer();
 			} catch (error) {
-				console.log(error.message);
+				console.log("❌ Error launching browser:", error.message);
 				addLog({ type: "ErrorMessage", message: error.message });
 			}
 		} else {
+			console.log("⚠️ Bot is OFF - not launching browser");
 			addLog({ type: "BotStatus", message: "Bot is currently set to OFF. No information will be sent from server to client." });
 			addLog({ type: "BotStatus", message: 'Everything will say "loading".' });
 		}
@@ -499,21 +505,25 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 
 	async function initialize_puppeteer() {
 		// Initialize Puppeteer and create a new page
+		console.log(`🔧 Launching Chrome in ${force_headful ? 'headful' : IS_HEADLESS ? 'headless' : 'headful'} mode`);
+		
 		browser = await puppeteer.launch({
   userDataDir: `./${IDENTIFIER_USER}/browser-userdata`,
-  headless: 'new',   // ✅ force new headless
-  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable',
+  headless: force_headful ? false : IS_HEADLESS,
+  executablePath: process.env.CHROME_PATH || '/usr/bin/chromium-browser',
   args: [
-  "--headless=new",
+  ...(force_headful || !IS_HEADLESS ? [] : ["--headless=new"]),
   "--no-sandbox",
   "--disable-setuid-sandbox",
   "--disable-dev-shm-usage",
-  "--single-process",
   "--disable-gpu",
   "--window-size=1920,1080",
   "--hide-scrollbars",
   "--mute-audio",
-  "--disable-blink-features=AutomationControlled"
+  "--disable-blink-features=AutomationControlled",
+  "--disable-web-security",
+  "--disable-features=VizDisplayCompositor",
+  "--start-maximized"
 ],
   ignoreHTTPSErrors: true,
   dumpio: true
@@ -1503,9 +1513,9 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 		addLog({ type: "DebugMessage", message: "Trying to start bot dashboard server" });
 
 		server.listen(port, () => {
-			console.log(`Now listening to: http://35.154.130.122:${port}`);
-			open(`http://35.154.130.122:${port}`);
-			addLog({ type: "DebugMessage", message: `Now listening to: http://35.154.130.122:${port}` });
+			console.log(`Now listening to: http://localhost:${port}`);
+			open(`http://localhost:${port}`);
+			addLog({ type: "DebugMessage", message: `Now listening to: http://localhost:${port}` });
 		});
 	} catch (error) {
 		if (error.code == "ERR_SERVER_ALREADY_LISTEN") {
@@ -1531,7 +1541,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = true, START_IMMED
 
 	// 	if (key.name === "u") {
 	// 		console.log(`--------------------------`);
-	// 		console.log(`http://35.154.130.122:${port}`);
+	// 		console.log(`http://localhost:${port}`);
 	// 		console.log(`--------------------------`);
 	// 	}
 	// });
@@ -1678,8 +1688,8 @@ global_app.post("/api/add_server", async (req, res) => {
 });
 
 global_server.listen(port, () => {
-	console.log(`Now listening to: http://35.154.130.122:${port}`);
-	open(`http://35.154.130.122:${port}`);
+	console.log(`Now listening to: http://localhost:${port}`);
+	open(`http://localhost:${port}`);
 
 	emit_server_info();
 });
@@ -1693,7 +1703,7 @@ rl.input.on("keypress", async (char, key) => {
 
 	if (key.name === "u") {
 		console.log(`--------------------------`);
-		console.log(`http://35.154.130.122:${port}`);
+		console.log(`http://localhost:${port}`);
 		console.log(`--------------------------`);
 	}
 });
