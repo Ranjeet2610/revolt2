@@ -82,7 +82,7 @@ start_bot() {
         
         if [ ! -z "$BOT_PORT" ]; then
             print_status "Bot is running on port: $BOT_PORT"
-            print_info "Access your bot at: http://localhost:$BOT_PORT"
+            print_info "Access your bot at: http://13.232.150.98:$BOT_PORT"
         else
             print_warning "Could not determine bot port"
         fi
@@ -126,7 +126,7 @@ show_status() {
             print_status "Bot is running (PID: $BOT_PID)"
             BOT_PORT=$(ss -tlnp | grep "node.*puppeteer_revolt.js" | awk '{print $4}' | cut -d: -f2 | head -1)
             if [ ! -z "$BOT_PORT" ]; then
-                print_info "Bot is accessible at: http://localhost:$BOT_PORT"
+                print_info "Bot is accessible at: http://13.232.150.98:$BOT_PORT"
             fi
         else
             print_warning "Bot is not running"
