@@ -17,7 +17,10 @@ import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import argsParser from "args-parser";
 import { generateSlug } from "random-word-slugs";
 
-const bot_version = "revolt bot v4.26.2025.1128am-puppeteer";
+const bot_version = "revolt bot v5.0.0-optimized";
+
+// Performance optimizations
+process.env.UV_THREADPOOL_SIZE = "128";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -523,10 +526,15 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
   "--disable-blink-features=AutomationControlled",
   "--disable-web-security",
   "--disable-features=VizDisplayCompositor",
-  "--start-maximized"
+  "--start-maximized",
+  "--disable-background-timer-throttling",
+  "--disable-backgrounding-occluded-windows",
+  "--disable-renderer-backgrounding",
+  "--disable-features=TranslateUI",
+  "--disable-ipc-flooding-protection"
 ],
   ignoreHTTPSErrors: true,
-  dumpio: true
+  dumpio: false
 });
 		const page = await browser.newPage();
 		page.goto("https://revolt.onech.at/");
@@ -1618,11 +1626,14 @@ global_app.delete("/api/server", async (req, res) => {
 		return res.end("Server is required");
 	}
 
-	try {
-		fs.rmSync(req.query.server, { recursive: true });
-		emit_server_info();
-		res.status(200).end(req.query.server);
-		return 0;
+		try {
+			// Safe removal with proper error handling
+			if (fs.existsSync(req.query.server)) {
+				fs.rmSync(req.query.server, { recursive: true, force: true });
+			}
+			emit_server_info();
+			res.status(200).end(req.query.server);
+			return 0;
 		// if (ports[req.query.server]?.port) {
 		// 	await axios(`http://127.0.0.1:${ports[req.query.server]?.port}/api/end_server`);
 		// 	waitUntil(ports[req.query.server]?.port);
