@@ -20,16 +20,16 @@ This guide will help you deploy your Revolt bot on an AWS EC2 instance with prop
 
 2. **Connect to Instance**
    ```bash
-   ssh -i your-key.pem ubuntu@your-instance-ip
+   ssh -i revolt_updated.pem ubuntu@13.232.150.98
    ```
 
 3. **Upload and Run Deployment Script**
    ```bash
    # Upload the deployment script
-   scp -i your-key.pem deploy-aws.sh ubuntu@your-instance-ip:~/
+   scp -i revolt_updated.pem deploy-aws.sh ubuntu@13.232.150.98:~/
    
    # Connect to instance
-   ssh -i your-key.pem ubuntu@your-instance-ip
+   ssh -i revolt_updated.pem ubuntu@13.232.150.98
    
    # Make executable and run
    chmod +x deploy-aws.sh
@@ -49,7 +49,7 @@ This guide will help you deploy your Revolt bot on an AWS EC2 instance with prop
 2. **Deploy with Docker Compose**
    ```bash
    # Clone or upload your code
-   git clone your-repo-url
+   git clone https://github.com/Ranjeet2610/revolt2.git
    cd revolt2
    
    # Start services
@@ -74,7 +74,7 @@ This guide will help you deploy your Revolt bot on an AWS EC2 instance with prop
 
 ```bash
 # Connect to your instance
-ssh -i your-key.pem ubuntu@your-instance-ip
+ssh -i revolt_updated.pem ubuntu@13.232.150.98
 
 # Update system
 sudo apt update && sudo apt upgrade -y
