@@ -1626,14 +1626,20 @@ global_app.delete("/api/server", async (req, res) => {
 		return res.end("Server is required");
 	}
 
-		try {
-			// Safe removal with proper error handling
-			if (fs.existsSync(req.query.server)) {
-				fs.rmSync(req.query.server, { recursive: true, force: true });
+	try {
+		// Safe removal with proper error handling
+		if (fs.existsSync(req.query.server)) {
+			// Try to change ownership first
+			try {
+				fs.chownSync(req.query.server, process.getuid(), process.getgid());
+			} catch (e) {
+				// Ignore ownership errors, continue with removal
 			}
-			emit_server_info();
-			res.status(200).end(req.query.server);
-			return 0;
+			fs.rmSync(req.query.server, { recursive: true, force: true });
+		}
+		emit_server_info();
+		res.status(200).end(req.query.server);
+		return 0;
 		// if (ports[req.query.server]?.port) {
 		// 	await axios(`http://127.0.0.1:${ports[req.query.server]?.port}/api/end_server`);
 		// 	waitUntil(ports[req.query.server]?.port);

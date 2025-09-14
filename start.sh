@@ -52,7 +52,7 @@ echo "💡 Using performance optimizations for faster startup"
 echo ""
 
 # Use optimized memory settings
-export NODE_OPTIONS="--max-old-space-size=4096 --optimize-for-size"
+export NODE_OPTIONS="--max-old-space-size=4096"
 export UV_THREADPOOL_SIZE=128
 
 node puppeteer_revolt.js "$@"
