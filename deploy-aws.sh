@@ -91,7 +91,7 @@ setup_firewall() {
     sudo ufw allow ssh
     sudo ufw allow 80/tcp
     sudo ufw allow 443/tcp
-    sudo ufw allow 3000:6000/tcp  # Bot port range
+    sudo ufw allow 49152:50000/tcp  # Dynamic bot port range
     sudo ufw --force enable
     print_status "Firewall configured"
 }
@@ -116,9 +116,15 @@ setup_application() {
     sudo mkdir -p /opt/revolt-bot
     sudo chown revoltbot:revoltbot /opt/revolt-bot
     
-    # Copy application files
-    sudo cp -r . /opt/revolt-bot/
-    sudo chown -R revoltbot:revoltbot /opt/revolt-bot
+    # Copy application files (handle missing files gracefully)
+    if [ -f "package.json" ]; then
+        sudo cp -r . /opt/revolt-bot/
+        sudo chown -R revoltbot:revoltbot /opt/revolt-bot
+    else
+        print_error "package.json not found in current directory"
+        print_info "Please run this script from the project root directory"
+        exit 1
+    fi
     
     # Install dependencies
     print_info "Installing Node.js dependencies..."
@@ -160,21 +166,59 @@ EOF
 configure_nginx() {
     print_info "Configuring Nginx reverse proxy with dynamic port support..."
     
-    # Copy the nginx configuration for dynamic ports
-    sudo cp nginx-simple.conf /etc/nginx/sites-available/revolt-bot
+    # Check if nginx-simple.conf exists, if not create a basic one
+    if [ -f "nginx-simple.conf" ]; then
+        sudo cp nginx-simple.conf /etc/nginx/sites-available/revolt-bot
+    else
+        print_warning "nginx-simple.conf not found, creating basic configuration..."
+        sudo tee /etc/nginx/sites-available/revolt-bot > /dev/null <<EOF
+server {
+    listen 80;
+    server_name _;
+    
+    location / {
+        proxy_pass http://localhost:1024;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+    
+    location /multi {
+        proxy_pass http://localhost:49623;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+EOF
+    fi
     
     # Update domain if provided
     if [ ! -z "$DOMAIN" ]; then
-        sudo sed -i "s/yourdomain\.com/$DOMAIN/g" /etc/nginx/sites-available/revolt-bot
+        sudo sed -i "s/server_name _;/server_name $DOMAIN;/" /etc/nginx/sites-available/revolt-bot
     fi
     
-    # Copy the nginx proxy update script
-    sudo cp update-nginx-proxy.sh /usr/local/bin/
-    sudo chmod +x /usr/local/bin/update-nginx-proxy.sh
-    
-    # Update the script with the correct domain
-    if [ ! -z "$DOMAIN" ]; then
-        sudo sed -i "s/yourdomain\.com/$DOMAIN/g" /usr/local/bin/update-nginx-proxy.sh
+    # Copy the nginx proxy update script if it exists
+    if [ -f "update-nginx-proxy.sh" ]; then
+        sudo cp update-nginx-proxy.sh /usr/local/bin/
+        sudo chmod +x /usr/local/bin/update-nginx-proxy.sh
+        
+        # Update the script with the correct domain
+        if [ ! -z "$DOMAIN" ]; then
+            sudo sed -i "s/yourdomain\.com/$DOMAIN/g" /usr/local/bin/update-nginx-proxy.sh
+        fi
+    else
+        print_warning "update-nginx-proxy.sh not found, skipping dynamic proxy setup"
     fi
 
     sudo ln -sf /etc/nginx/sites-available/revolt-bot /etc/nginx/sites-enabled/
@@ -277,15 +321,17 @@ display_status() {
     sudo systemctl status nginx --no-pager -l
     echo ""
     echo "Ports Listening:"
-    sudo netstat -tlnp | grep -E ":(80|443|1024|49623)"
+    sudo netstat -tlnp | grep -E ":(80|443|1024|49623|49152|49153|49154|49155|49156)"
     echo ""
     echo "Access URLs:"
     if [ ! -z "$DOMAIN" ]; then
         echo "  Main Dashboard: https://$DOMAIN"
         echo "  Multi Dashboard: https://$DOMAIN/multi"
     else
-        echo "  Main Dashboard: http://$(curl -s ifconfig.me):1024"
-        echo "  Multi Dashboard: http://$(curl -s ifconfig.me):49623"
+        PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || echo "YOUR_SERVER_IP")
+        echo "  Main Dashboard: http://$PUBLIC_IP"
+        echo "  Multi Dashboard: http://$PUBLIC_IP/multi"
+        echo "  Bot API: http://$PUBLIC_IP/api/"
     fi
 }
 
@@ -300,10 +346,25 @@ main() {
         exit 1
     fi
     
+    # Check if required files exist
+    if [ ! -f "package.json" ]; then
+        print_error "package.json not found in current directory"
+        print_info "Please run this script from the project root directory"
+        exit 1
+    fi
+    
+    if [ ! -f "puppeteer_revolt.js" ]; then
+        print_error "puppeteer_revolt.js not found in current directory"
+        print_info "Please run this script from the project root directory"
+        exit 1
+    fi
+    
     # Check for domain parameter
     if [ ! -z "$1" ]; then
         DOMAIN="$1"
         print_info "Domain set to: $DOMAIN"
+    else
+        print_info "No domain specified. Using IP address for access."
     fi
     
     print_info "Starting deployment process..."

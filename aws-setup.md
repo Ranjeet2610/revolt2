@@ -16,7 +16,7 @@ This guide will help you deploy your Revolt bot on an AWS EC2 instance with prop
    - Instance Type: `t3.medium` or larger (minimum 2GB RAM)
    - OS: Ubuntu 22.04 LTS
    - Storage: 20GB+ EBS volume
-   - Security Group: Allow ports 22, 80, 443, and 3000-6000
+   - Security Group: Allow ports 22, 80, 443, and 49152-50000
 
 2. **Connect to Instance**
    ```bash
@@ -68,7 +68,7 @@ This guide will help you deploy your Revolt bot on an AWS EC2 instance with prop
   - SSH (22) from your IP
   - HTTP (80) from anywhere
   - HTTPS (443) from anywhere
-  - Custom TCP (3000-6000) from anywhere (for bot ports)
+  - Custom TCP (49152-50000) from anywhere (for dynamic bot ports)
 
 ### 2. Connect and Update System
 
@@ -119,7 +119,7 @@ npm install --production
 sudo ufw allow ssh
 sudo ufw allow 80/tcp
 sudo ufw allow 443/tcp
-sudo ufw allow 3000:6000/tcp
+sudo ufw allow 49152:50000/tcp
 sudo ufw --force enable
 ```
 
