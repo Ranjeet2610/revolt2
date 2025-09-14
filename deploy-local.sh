@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # =============================================================================
-# Revolt Bot - AWS EC2 Deployment Script with Dynamic Ports
+# Revolt Bot - Local Deployment Script
 # =============================================================================
-# This script sets up the Revolt bot on an AWS EC2 instance with dynamic port support
-# Usage: ./deploy-aws.sh [domain.com]
+# This script sets up the Revolt bot locally with the same configuration as AWS
+# Usage: ./deploy-local.sh
 # =============================================================================
 
 set -e  # Exit on any error
@@ -19,7 +19,6 @@ NC='\033[0m' # No Color
 # Configuration
 BOT_USER="revoltbot"
 BOT_DIR="/opt/revolt-bot"
-DOMAIN="${1:-}"
 PORT_RANGE_START=49152
 PORT_RANGE_END=50000
 
@@ -47,23 +46,11 @@ command_exists() {
 
 # Function to install system dependencies
 install_system_deps() {
-    print_info "Updating system packages..."
-    if [ "$EUID" -eq 0 ]; then
-        apt update && apt upgrade -y
-    else
-        sudo apt update && sudo apt upgrade -y
-    fi
-    
     print_info "Installing system dependencies..."
-    if [ "$EUID" -eq 0 ]; then
-        apt install -y curl wget git build-essential software-properties-common ufw
-    else
-        sudo apt install -y curl wget git build-essential software-properties-common ufw
-    fi
     
-    # Install Node.js 20.x
+    # Install Node.js if not present
     if ! command_exists node; then
-        print_info "Installing Node.js 20.x..."
+        print_info "Installing Node.js..."
         curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
         sudo apt install -y nodejs
         print_status "Node.js installed: $(node --version)"
@@ -93,11 +80,11 @@ install_system_deps() {
 
 # Function to setup firewall
 setup_firewall() {
-    print_info "Configuring firewall with dynamic port support..."
+    print_info "Configuring firewall..."
     sudo ufw allow ssh
     sudo ufw allow 80/tcp
     sudo ufw allow 443/tcp
-    sudo ufw allow ${PORT_RANGE_START}:${PORT_RANGE_END}/tcp  # Dynamic bot port range
+    sudo ufw allow ${PORT_RANGE_START}:${PORT_RANGE_END}/tcp
     sudo ufw --force enable
     print_status "Firewall configured for ports ${PORT_RANGE_START}-${PORT_RANGE_END}"
 }
@@ -124,13 +111,8 @@ setup_application() {
     
     # Copy application files
     if [ -f "package.json" ]; then
-        if [ "$EUID" -eq 0 ]; then
-            cp -r . $BOT_DIR/
-            chown -R $BOT_USER:$BOT_USER $BOT_DIR
-        else
-            sudo cp -r . $BOT_DIR/
-            sudo chown -R $BOT_USER:$BOT_USER $BOT_DIR
-        fi
+        sudo cp -r . $BOT_DIR/
+        sudo chown -R $BOT_USER:$BOT_USER $BOT_DIR
     else
         print_error "package.json not found in current directory"
         print_info "Please run this script from the project root directory"
@@ -140,11 +122,7 @@ setup_application() {
     # Install dependencies
     print_info "Installing Node.js dependencies..."
     cd $BOT_DIR
-    if [ "$EUID" -eq 0 ]; then
-        sudo -u $BOT_USER npm install --production
-    else
-        sudo -u $BOT_USER npm install --production
-    fi
+    sudo -u $BOT_USER npm install --production
     
     print_status "Application setup complete"
 }
@@ -162,7 +140,7 @@ After=network.target
 Type=simple
 User=$BOT_USER
 WorkingDirectory=$BOT_DIR
-ExecStart=/usr/bin/node puppeteer_revolt.js --user production
+ExecStart=/usr/bin/node puppeteer_revolt.js --user production --headless=true
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
@@ -192,7 +170,7 @@ After=network.target
 Type=simple
 User=$BOT_USER
 WorkingDirectory=$BOT_DIR
-ExecStart=/usr/bin/node puppeteer_revolt.js --user %i
+ExecStart=/usr/bin/node puppeteer_revolt.js --user %i --headless=true
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
@@ -207,32 +185,19 @@ EOF
     print_status "Dynamic bot instances systemd service template created"
 }
 
-# Function to configure Nginx with dynamic port support
+# Function to configure Nginx
 configure_nginx() {
-    print_info "Configuring Nginx with dynamic port support..."
+    print_info "Configuring Nginx..."
     
     sudo tee /etc/nginx/sites-available/revolt-bot > /dev/null <<EOF
-# Dynamic port configuration for Revolt Bot
-# This configuration supports multiple bot instances on ports ${PORT_RANGE_START}-${PORT_RANGE_END}
-
-# Upstream for main bot (port 1024)
-upstream main_bot {
-    server 127.0.0.1:1024;
-}
-
-# Upstream for dynamic bot instances
-upstream dynamic_bots {
-    # This will be dynamically updated by the proxy update script
-    server 127.0.0.1:${PORT_RANGE_START};
-}
-
 server {
-    listen 80;
-    server_name ${DOMAIN:-_};
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
     
     # Main bot dashboard
     location / {
-        proxy_pass http://main_bot;
+        proxy_pass http://127.0.0.1:1024;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -244,10 +209,9 @@ server {
         proxy_read_timeout 86400;
     }
     
-    # Dynamic bot instances (path-based routing)
-    location ~ ^/bot/([a-zA-Z0-9-]+)/? {
-        set \$bot_name \$1;
-        proxy_pass http://dynamic_bots;
+    # Bot instance
+    location /bot/ {
+        proxy_pass http://127.0.0.1:1024/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -261,7 +225,7 @@ server {
     
     # API endpoints
     location /api/ {
-        proxy_pass http://main_bot;
+        proxy_pass http://127.0.0.1:1024;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
         proxy_set_header X-Real-IP \$remote_addr;
@@ -271,7 +235,7 @@ server {
     
     # Socket.IO support
     location /socket.io/ {
-        proxy_pass http://main_bot;
+        proxy_pass http://127.0.0.1:1024;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
@@ -281,7 +245,7 @@ server {
         proxy_set_header X-Forwarded-Proto \$scheme;
     }
     
-    # Health check endpoint
+    # Health check
     location /health {
         access_log off;
         return 200 "healthy\n";
@@ -294,172 +258,10 @@ EOF
     sudo ln -sf /etc/nginx/sites-available/revolt-bot /etc/nginx/sites-enabled/
     sudo rm -f /etc/nginx/sites-enabled/default
     
-    # Test and reload nginx
+    # Test and restart nginx
     sudo nginx -t
     sudo systemctl restart nginx
-    print_status "Nginx configured with dynamic port support"
-}
-
-# Function to create dynamic proxy management script
-create_proxy_management_script() {
-    print_info "Creating dynamic proxy management script..."
-    
-    sudo tee /usr/local/bin/update-nginx-proxy.sh > /dev/null <<'EOF'
-#!/bin/bash
-
-# Dynamic Nginx Proxy Update Script for Revolt Bot
-# This script updates Nginx configuration when bot instances are added/removed
-
-NGINX_CONFIG="/etc/nginx/sites-available/revolt-bot"
-TEMP_CONFIG="/tmp/nginx-revolt-temp.conf"
-BOT_DIR="/opt/revolt-bot"
-PORT_RANGE_START=49152
-PORT_RANGE_END=50000
-
-# Function to get active bot ports
-get_active_ports() {
-    # Find all running bot processes and extract their ports
-    ps aux | grep "puppeteer_revolt.js" | grep -v grep | while read line; do
-        # Extract port from the process arguments or log files
-        echo "$line" | grep -o "localhost:[0-9]*" | cut -d: -f2
-    done | sort -n | uniq
-}
-
-# Function to update Nginx configuration
-update_nginx_config() {
-    local active_ports=($(get_active_ports))
-    
-    # Create temporary configuration
-    cat > "$TEMP_CONFIG" << 'NGINX_EOF'
-# Dynamic port configuration for Revolt Bot
-# Generated on: $(date)
-# Active bot ports: ${active_ports[*]}
-
-# Upstream for main bot (port 1024)
-upstream main_bot {
-    server 127.0.0.1:1024;
-}
-
-# Upstream for dynamic bot instances
-upstream dynamic_bots {
-NGINX_EOF
-
-    # Add active bot ports to upstream
-    for port in "${active_ports[@]}"; do
-        if [[ "$port" =~ ^[0-9]+$ ]] && [ "$port" -ge $PORT_RANGE_START ] && [ "$port" -le $PORT_RANGE_END ]; then
-            echo "    server 127.0.0.1:$port;" >> "$TEMP_CONFIG"
-        fi
-    done
-    
-    # Add default server if no active bots
-    if [ ${#active_ports[@]} -eq 0 ]; then
-        echo "    server 127.0.0.1:$PORT_RANGE_START;" >> "$TEMP_CONFIG"
-    fi
-    
-    cat >> "$TEMP_CONFIG" << 'NGINX_EOF'
-}
-
-server {
-    listen 80;
-    server_name _;
-    
-    # Main bot dashboard
-    location / {
-        proxy_pass http://main_bot;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-        proxy_read_timeout 86400;
-    }
-    
-    # Dynamic bot instances (path-based routing)
-    location ~ ^/bot/([a-zA-Z0-9-]+)/? {
-        set $bot_name $1;
-        proxy_pass http://dynamic_bots;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_cache_bypass $http_upgrade;
-        proxy_read_timeout 86400;
-    }
-    
-    # API endpoints
-    location /api/ {
-        proxy_pass http://main_bot;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    
-    # Socket.IO support
-    location /socket.io/ {
-        proxy_pass http://main_bot;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    
-    # Health check endpoint
-    location /health {
-        access_log off;
-        return 200 "healthy\n";
-        add_header Content-Type text/plain;
-    }
-}
-NGINX_EOF
-
-    # Test configuration
-    if nginx -t -c "$TEMP_CONFIG"; then
-        # Backup current config
-        cp "$NGINX_CONFIG" "$NGINX_CONFIG.backup.$(date +%s)"
-        
-        # Replace configuration
-        mv "$TEMP_CONFIG" "$NGINX_CONFIG"
-        
-        # Reload Nginx
-        systemctl reload nginx
-        
-        echo "Nginx configuration updated successfully at $(date)"
-        echo "Active bot ports: ${ports[*]}"
-    else
-        echo "Error: Invalid Nginx configuration generated"
-        rm -f "$TEMP_CONFIG"
-        exit 1
-    fi
-}
-
-# Main execution
-case "$1" in
-    "update")
-        update_nginx_config
-        ;;
-    "status")
-        echo "Active bot ports: $(get_active_ports | tr '\n' ' ')"
-        ;;
-    *)
-        echo "Usage: $0 {update|status}"
-        exit 1
-        ;;
-esac
-EOF
-
-    sudo chmod +x /usr/local/bin/update-nginx-proxy.sh
-    print_status "Dynamic proxy management script created"
+    print_status "Nginx configured"
 }
 
 # Function to create bot management script
@@ -487,8 +289,16 @@ start_bot() {
     systemctl start "${SERVICE_PREFIX}@${bot_name}.service"
     systemctl enable "${SERVICE_PREFIX}@${bot_name}.service"
     
-    # Update nginx proxy
-    /usr/local/bin/update-nginx-proxy.sh update
+    # Wait a moment for the service to start
+    sleep 3
+    
+    # Check if it's running
+    if systemctl is-active --quiet "${SERVICE_PREFIX}@${bot_name}.service"; then
+        echo "✓ Bot instance '$bot_name' started successfully"
+    else
+        echo "❌ Failed to start bot instance '$bot_name'"
+        systemctl status "${SERVICE_PREFIX}@${bot_name}.service" --no-pager
+    fi
 }
 
 # Function to stop a bot instance
@@ -502,9 +312,7 @@ stop_bot() {
     echo "Stopping bot instance: $bot_name"
     systemctl stop "${SERVICE_PREFIX}@${bot_name}.service"
     systemctl disable "${SERVICE_PREFIX}@${bot_name}.service"
-    
-    # Update nginx proxy
-    /usr/local/bin/update-nginx-proxy.sh update
+    echo "✓ Bot instance '$bot_name' stopped"
 }
 
 # Function to restart a bot instance
@@ -518,8 +326,16 @@ restart_bot() {
     echo "Restarting bot instance: $bot_name"
     systemctl restart "${SERVICE_PREFIX}@${bot_name}.service"
     
-    # Update nginx proxy
-    /usr/local/bin/update-nginx-proxy.sh update
+    # Wait a moment for the service to restart
+    sleep 3
+    
+    # Check if it's running
+    if systemctl is-active --quiet "${SERVICE_PREFIX}@${bot_name}.service"; then
+        echo "✓ Bot instance '$bot_name' restarted successfully"
+    else
+        echo "❌ Failed to restart bot instance '$bot_name'"
+        systemctl status "${SERVICE_PREFIX}@${bot_name}.service" --no-pager
+    fi
 }
 
 # Function to show bot status
@@ -541,7 +357,7 @@ list_bots() {
     
     echo ""
     echo "Active bot ports:"
-    /usr/local/bin/update-nginx-proxy.sh status
+    ss -tlnp | grep -E ":(49152|49153|49154|49155|49156|49157|49158|49159|49160)" | awk '{print $4}' | cut -d: -f2 | sort -n
 }
 
 # Main execution
@@ -562,15 +378,24 @@ case "$1" in
         list_bots
         ;;
     *)
+        echo "Revolt Bot Manager"
+        echo "================="
+        echo ""
         echo "Usage: $0 {start|stop|restart|status|list} [bot_name]"
         echo ""
+        echo "Commands:"
+        echo "  start <name>    - Start a new bot instance"
+        echo "  stop <name>     - Stop a bot instance"
+        echo "  restart <name>  - Restart a bot instance"
+        echo "  status [name]   - Show status of bot(s)"
+        echo "  list            - List all active bot instances"
+        echo ""
         echo "Examples:"
-        echo "  $0 start mybot          # Start bot instance 'mybot'"
-        echo "  $0 stop mybot           # Stop bot instance 'mybot'"
-        echo "  $0 restart mybot        # Restart bot instance 'mybot'"
-        echo "  $0 status mybot         # Show status of 'mybot'"
-        echo "  $0 status               # Show status of all bots"
-        echo "  $0 list                 # List all active bot instances"
+        echo "  $0 start mybot"
+        echo "  $0 stop mybot"
+        echo "  $0 restart mybot"
+        echo "  $0 status mybot"
+        echo "  $0 list"
         exit 1
         ;;
 esac
@@ -578,62 +403,6 @@ EOF
 
     sudo chmod +x /usr/local/bin/revolt-bot-manager.sh
     print_status "Bot management script created"
-}
-
-# Function to setup SSL with Let's Encrypt
-setup_ssl() {
-    if [ ! -z "$DOMAIN" ]; then
-        print_info "Setting up SSL with Let's Encrypt..."
-        sudo apt install -y certbot python3-certbot-nginx
-        
-        # Update Nginx config with domain
-        sudo sed -i "s/server_name _;/server_name $DOMAIN;/" /etc/nginx/sites-available/revolt-bot
-        sudo nginx -t && sudo systemctl reload nginx
-        
-        # Get SSL certificate
-        sudo certbot --nginx -d $DOMAIN --non-interactive --agree-tos --email admin@$DOMAIN
-        print_status "SSL certificate installed"
-    else
-        print_warning "No domain specified. Skipping SSL setup."
-        print_info "To setup SSL later, run: sudo certbot --nginx -d yourdomain.com"
-    fi
-}
-
-# Function to create monitoring script
-create_monitoring() {
-    print_info "Setting up monitoring..."
-    
-    sudo tee /opt/revolt-bot/monitor.sh > /dev/null <<'EOF'
-#!/bin/bash
-# Monitor script for Revolt Bot
-
-LOG_FILE="/var/log/revolt-bot-monitor.log"
-SERVICE_NAME="revolt-bot"
-
-check_service() {
-    if ! systemctl is-active --quiet $SERVICE_NAME; then
-        echo "$(date): Service $SERVICE_NAME is not running. Restarting..." >> $LOG_FILE
-        systemctl restart $SERVICE_NAME
-    fi
-}
-
-check_ports() {
-    if ! ss -tlnp | grep -q ":1024"; then
-        echo "$(date): Port 1024 is not listening. Restarting service..." >> $LOG_FILE
-        systemctl restart $SERVICE_NAME
-    fi
-}
-
-check_service
-check_ports
-EOF
-
-    sudo chmod +x /opt/revolt-bot/monitor.sh
-    sudo chown $BOT_USER:$BOT_USER /opt/revolt-bot/monitor.sh
-    
-    # Add to crontab
-    (sudo crontab -l 2>/dev/null; echo "*/5 * * * * /opt/revolt-bot/monitor.sh") | sudo crontab -
-    print_status "Monitoring setup complete"
 }
 
 # Function to start services
@@ -676,32 +445,25 @@ display_status() {
     sudo ss -tlnp | grep -E ":(80|443|1024|49152|49153|49154|49155|49156)"
     echo ""
     echo "Access URLs:"
-    if [ ! -z "$DOMAIN" ]; then
-        echo "  Main Dashboard: https://$DOMAIN"
-        echo "  Bot Instances: https://$DOMAIN/bot/botname/"
-    else
-        PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || curl -s ipinfo.io/ip 2>/dev/null || echo "YOUR_SERVER_IP")
-        echo "  Main Dashboard: http://$PUBLIC_IP"
-        echo "  Bot Instances: http://$PUBLIC_IP/bot/botname/"
-        echo "  Bot API: http://$PUBLIC_IP/api/"
-    fi
+    echo "  Main Dashboard: http://localhost"
+    echo "  Bot Instances: http://localhost/bot/"
+    echo "  Health Check: http://localhost/health"
     echo ""
     echo "Management Commands:"
-    echo "  Start bot: sudo revolt-bot-manager.sh start mybot"
-    echo "  Stop bot: sudo revolt-bot-manager.sh stop mybot"
-    echo "  List bots: sudo revolt-bot-manager.sh list"
-    echo "  Update proxy: sudo update-nginx-proxy.sh update"
+    echo "  Start bot: revolt-bot-manager.sh start mybot"
+    echo "  Stop bot: revolt-bot-manager.sh stop mybot"
+    echo "  List bots: revolt-bot-manager.sh list"
 }
 
 # Main execution
 main() {
-    echo "🚀 Revolt Bot - AWS EC2 Deployment with Dynamic Ports"
-    echo "====================================================="
+    echo "🚀 Revolt Bot - Local Deployment"
+    echo "================================="
     
     # Check if running as root
     if [ "$EUID" -eq 0 ]; then
-        print_warning "Running as root - this is not recommended but will proceed"
-        print_info "Consider creating a regular user for better security"
+        print_error "Please run this script as a regular user, not root"
+        exit 1
     fi
     
     # Check if required files exist
@@ -717,14 +479,7 @@ main() {
         exit 1
     fi
     
-    # Check for domain parameter
-    if [ ! -z "$DOMAIN" ]; then
-        print_info "Domain set to: $DOMAIN"
-    else
-        print_info "No domain specified. Using IP address for access."
-    fi
-    
-    print_info "Starting deployment process..."
+    print_info "Starting local deployment process..."
     
     # Install system dependencies
     install_system_deps
@@ -746,14 +501,7 @@ main() {
     configure_nginx
     
     # Create management scripts
-    create_proxy_management_script
     create_bot_management_script
-    
-    # Setup SSL if domain provided
-    setup_ssl
-    
-    # Setup monitoring
-    create_monitoring
     
     # Start services
     start_services
@@ -761,8 +509,8 @@ main() {
     # Display status
     display_status
     
-    print_status "Deployment completed successfully!"
-    print_info "The bot is now running with dynamic port support (${PORT_RANGE_START}-${PORT_RANGE_END})"
+    print_status "Local deployment completed successfully!"
+    print_info "The bot is now running with the same configuration as AWS"
 }
 
 # Handle Ctrl+C gracefully
@@ -770,3 +518,4 @@ trap 'echo -e "\n${YELLOW}Deployment interrupted...${NC}"; exit 1' INT
 
 # Run main function
 main "$@"
+

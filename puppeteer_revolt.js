@@ -282,7 +282,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 							}
 						} catch (error) {
 							console.log(error);
-							addLog({ type: "BotMessage", message: `Something went wrong when sending repsonse. ID: ${msg._id} | Name: ${msg.name}` });
+							addLog({ type: "BotMessage", message: `Something went wrong when sending response. ID: ${msg._id} | Name: ${msg.name}` });
 						}
 					}, delay);
 				} else {
@@ -363,7 +363,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 									}
 								} catch (error) {
 									console.log(error);
-									addLog({ type: "BotMessage", message: `Something went wrong when sending repsonse. ID: ${channel._id} | Name: ${channel.name}` });
+									addLog({ type: "BotMessage", message: `Something went wrong when sending response. ID: ${channel._id} | Name: ${channel.name}` });
 								}
 							}, delay);
 						} else {
@@ -1521,9 +1521,9 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		addLog({ type: "DebugMessage", message: "Trying to start bot dashboard server" });
 
 		server.listen(port, () => {
-			console.log(`Now listening to: http://13.232.150.98:${port}`);
-			open(`http://13.232.150.98:${port}`);
-			addLog({ type: "DebugMessage", message: `Now listening to: http://13.232.150.98:${port}` });
+			console.log(`Now listening to: http://localhost:${port}`);
+			open(`http://localhost:${port}`);
+			addLog({ type: "DebugMessage", message: `Now listening to: http://localhost:${port}` });
 		});
 	} catch (error) {
 		if (error.code == "ERR_SERVER_ALREADY_LISTEN") {
@@ -1549,7 +1549,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 
 	// 	if (key.name === "u") {
 	// 		console.log(`--------------------------`);
-	// 		console.log(`http://13.232.150.98:${port}`);
+	// 		console.log(`http://localhost:${port}`);
 	// 		console.log(`--------------------------`);
 	// 	}
 	// });
@@ -1705,8 +1705,8 @@ global_app.post("/api/add_server", async (req, res) => {
 });
 
 global_server.listen(port, () => {
-	console.log(`Now listening to: http://13.232.150.98:${port}`);
-	open(`http://13.232.150.98:${port}`);
+	console.log(`Now listening to: http://localhost:${port}`);
+	open(`http://localhost:${port}`);
 
 	emit_server_info();
 });
@@ -1720,7 +1720,7 @@ rl.input.on("keypress", async (char, key) => {
 
 	if (key.name === "u") {
 		console.log(`--------------------------`);
-		console.log(`http://13.232.150.98:${port}`);
+		console.log(`http://localhost:${port}`);
 		console.log(`--------------------------`);
 	}
 });
