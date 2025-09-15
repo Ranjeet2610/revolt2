@@ -162,7 +162,7 @@ After=network.target
 Type=simple
 User=$BOT_USER
 WorkingDirectory=$BOT_DIR
-ExecStart=/usr/bin/node puppeteer_revolt.js --user production
+ExecStart=/usr/bin/node puppeteer_revolt.js --user production --headless=true
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
@@ -192,7 +192,7 @@ After=network.target
 Type=simple
 User=$BOT_USER
 WorkingDirectory=$BOT_DIR
-ExecStart=/usr/bin/node puppeteer_revolt.js --user %i
+ExecStart=/usr/bin/node puppeteer_revolt.js --user %i --headless=true
 Restart=always
 RestartSec=10
 Environment=NODE_ENV=production
