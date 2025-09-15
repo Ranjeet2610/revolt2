@@ -95,4 +95,4 @@ jobs:
           netstat -tlnp | grep -E ":(80|443|1024|49623)" || true
           
           # Test HTTP response
-          curl -f http://13.232.150.98:1024 || exit 1
+          curl -f http://localhost:1024 || exit 1

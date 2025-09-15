@@ -321,7 +321,7 @@ get_active_ports() {
     # Find all running bot processes and extract their ports
     ps aux | grep "puppeteer_revolt.js" | grep -v grep | while read line; do
         # Extract port from the process arguments or log files
-        echo "$line" | grep -o "13.232.150.98:[0-9]*" | cut -d: -f2
+        echo "$line" | grep -o "localhost:[0-9]*" | cut -d: -f2
     done | sort -n | uniq
 }
 

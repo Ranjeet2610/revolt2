@@ -513,12 +513,83 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		browser = await puppeteer.launch({
   userDataDir: `./${IDENTIFIER_USER}/browser-userdata`,
   headless: force_headful ? false : IS_HEADLESS,
-  executablePath: process.env.CHROME_PATH || '/usr/bin/chromium-browser',
+  executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable',
   args: [
   ...(force_headful || !IS_HEADLESS ? [] : ["--headless=new"]),
   "--no-sandbox",
   "--disable-setuid-sandbox",
   "--disable-dev-shm-usage",
+  "--disable-gpu-sandbox",
+  "--disable-software-rasterizer",
+  "--disable-background-timer-throttling",
+  "--disable-backgrounding-occluded-windows",
+  "--disable-renderer-backgrounding",
+  "--disable-features=TranslateUI",
+  "--disable-ipc-flooding-protection",
+  "--disable-extensions",
+  "--disable-plugins",
+  "--disable-default-apps",
+  "--disable-sync",
+  "--disable-translate",
+  "--disable-logging",
+  "--no-first-run",
+  "--no-default-browser-check",
+  "--disable-background-networking",
+  "--disable-client-side-phishing-detection",
+  "--disable-component-extensions-with-background-pages",
+  "--disable-hang-monitor",
+  "--disable-popup-blocking",
+  "--disable-prompt-on-repost",
+  "--disable-windows10-custom-titlebar",
+  "--metrics-recording-only",
+  "--safebrowsing-disable-auto-update",
+  "--enable-automation",
+  "--password-store=basic",
+  "--use-mock-keychain",
+  "--disable-crash-reporter",
+  "--disable-in-process-stack-traces",
+  "--disable-login-animations",
+  "--disable-notifications",
+  "--disable-permissions-api",
+  "--disable-speech-api",
+  "--disable-file-system",
+  "--disable-presentation-api",
+  "--disable-print-preview",
+  "--disable-sync-preferences",
+  "--disable-threaded-compositing",
+  "--disable-threaded-scrolling",
+  "--disable-webgl",
+  "--disable-webgl2",
+  "--disable-accelerated-2d-canvas",
+  "--disable-accelerated-jpeg-decoding",
+  "--disable-accelerated-mjpeg-decode",
+  "--disable-accelerated-video-decode",
+  "--disable-gpu-sandbox",
+  "--disable-software-rasterizer",
+  "--disable-background-mode",
+  "--disable-background-networking",
+  "--disable-default-apps",
+  "--disable-extensions",
+  "--disable-sync",
+  "--disable-translate",
+  "--hide-scrollbars",
+  "--mute-audio",
+  "--no-first-run",
+  "--no-default-browser-check",
+  "--disable-background-timer-throttling",
+  "--disable-renderer-backgrounding",
+  "--disable-backgrounding-occluded-windows",
+  "--disable-features=TranslateUI",
+  "--disable-ipc-flooding-protection",
+  "--disable-hang-monitor",
+  "--disable-popup-blocking",
+  "--disable-prompt-on-repost",
+  "--disable-windows10-custom-titlebar",
+  "--metrics-recording-only",
+  "--safebrowsing-disable-auto-update",
+  "--enable-automation",
+  "--password-store=basic",
+  "--use-mock-keychain",
   "--disable-gpu",
   "--window-size=1920,1080",
   "--hide-scrollbars",
@@ -558,7 +629,52 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
   "--disable-renderer-backgrounding",
   "--disable-backgrounding-occluded-windows",
   "--disable-features=TranslateUI",
-  "--disable-ipc-flooding-protection"
+  "--disable-ipc-flooding-protection",
+  "--disable-crash-reporter",
+  "--disable-in-process-stack-traces",
+  "--disable-logging",
+  "--disable-login-animations",
+  "--disable-notifications",
+  "--disable-permissions-api",
+  "--disable-speech-api",
+  "--disable-file-system",
+  "--disable-presentation-api",
+  "--disable-print-preview",
+  "--disable-sync-preferences",
+  "--disable-threaded-compositing",
+  "--disable-threaded-scrolling",
+  "--disable-webgl",
+  "--disable-webgl2",
+  "--disable-accelerated-2d-canvas",
+  "--disable-accelerated-jpeg-decoding",
+  "--disable-accelerated-mjpeg-decode",
+  "--disable-accelerated-video-decode",
+  "--disable-gpu-sandbox",
+  "--disable-software-rasterizer",
+  "--disable-background-mode",
+  "--disable-background-networking",
+  "--disable-default-apps",
+  "--disable-extensions",
+  "--disable-sync",
+  "--disable-translate",
+  "--hide-scrollbars",
+  "--mute-audio",
+  "--no-first-run",
+  "--no-default-browser-check",
+  "--disable-background-timer-throttling",
+  "--disable-renderer-backgrounding",
+  "--disable-backgrounding-occluded-windows",
+  "--disable-features=TranslateUI",
+  "--disable-ipc-flooding-protection",
+  "--disable-hang-monitor",
+  "--disable-popup-blocking",
+  "--disable-prompt-on-repost",
+  "--disable-windows10-custom-titlebar",
+  "--metrics-recording-only",
+  "--safebrowsing-disable-auto-update",
+  "--enable-automation",
+  "--password-store=basic",
+  "--use-mock-keychain"
 ],
   ignoreHTTPSErrors: true,
   dumpio: false
@@ -1548,9 +1664,9 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		addLog({ type: "DebugMessage", message: "Trying to start bot dashboard server" });
 
 		server.listen(port, () => {
-			console.log(`Now listening to: http://13.232.150.98:${port}`);
-			open(`http://13.232.150.98:${port}`);
-			addLog({ type: "DebugMessage", message: `Now listening to: http://13.232.150.98:${port}` });
+			console.log(`Now listening to: http://localhost:${port}`);
+			open(`http://localhost:${port}`);
+			addLog({ type: "DebugMessage", message: `Now listening to: http://localhost:${port}` });
 		});
 	} catch (error) {
 		if (error.code == "ERR_SERVER_ALREADY_LISTEN") {
@@ -1576,7 +1692,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 
 	// 	if (key.name === "u") {
 	// 		console.log(`--------------------------`);
-	// 		console.log(`http://13.232.150.98:${port}`);
+	// 		console.log(`http://localhost:${port}`);
 	// 		console.log(`--------------------------`);
 	// 	}
 	// });
@@ -1732,8 +1848,8 @@ global_app.post("/api/add_server", async (req, res) => {
 });
 
 global_server.listen(port, () => {
-	console.log(`Now listening to: http://13.232.150.98:${port}`);
-	open(`http://13.232.150.98:${port}`);
+	console.log(`Now listening to: http://localhost:${port}`);
+	open(`http://localhost:${port}`);
 
 	emit_server_info();
 });
@@ -1747,7 +1863,7 @@ rl.input.on("keypress", async (char, key) => {
 
 	if (key.name === "u") {
 		console.log(`--------------------------`);
-		console.log(`http://13.232.150.98:${port}`);
+		console.log(`http://localhost:${port}`);
 		console.log(`--------------------------`);
 	}
 });
