@@ -506,28 +506,73 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 	async function initialize_puppeteer() {
 		// Initialize Puppeteer and create a new page
 		console.log(`🔧 Launching Chrome in ${force_headful ? 'headful' : IS_HEADLESS ? 'headless' : 'headful'} mode`);
-		
+
+		// Try different Chrome/Chromium paths
+		const possiblePaths = [
+			process.env.CHROME_PATH,
+			'/snap/chromium/current/usr/lib/chromium-browser/chrome',
+			'/snap/chromium/current/usr/lib/chromium-browser/chromium-browser',
+			'/usr/bin/chromium-browser',
+			'/usr/bin/google-chrome',
+			'/usr/bin/google-chrome-stable'
+		];
+
+		let executablePath = null;
+		for (const path of possiblePaths) {
+			if (path && fs.existsSync(path)) {
+				executablePath = path;
+				break;
+			}
+		}
+
+		if (!executablePath) {
+			throw new Error('No Chrome/Chromium executable found. Please install Chromium or Google Chrome.');
+		}
+
+		console.log(`🔧 Using browser: ${executablePath}`);
+
 		browser = await puppeteer.launch({
-  userDataDir: `./${IDENTIFIER_USER}/browser-userdata`,
-  headless: force_headful ? false : IS_HEADLESS,
-  executablePath: process.env.CHROME_PATH || '/usr/bin/chromium-browser',
-  args: [
-  ...(force_headful || !IS_HEADLESS ? [] : ["--headless=new"]),
-  "--no-sandbox",
-  "--disable-setuid-sandbox",
-  "--disable-dev-shm-usage",
-  "--disable-gpu",
-  "--window-size=1920,1080",
-  "--hide-scrollbars",
-  "--mute-audio",
-  "--disable-blink-features=AutomationControlled",
-  "--disable-web-security",
-  "--disable-features=VizDisplayCompositor",
-  "--start-maximized"
-],
-  ignoreHTTPSErrors: true,
-  dumpio: true
-});
+			userDataDir: `/tmp/revolt-bot-${IDENTIFIER_USER}-${Date.now()}`,
+			headless: force_headful ? false : IS_HEADLESS,
+			executablePath: executablePath,
+			args: [
+				...(force_headful || !IS_HEADLESS ? [] : ["--headless=new"]),
+				"--no-sandbox",
+				"--disable-setuid-sandbox",
+				"--disable-dev-shm-usage",
+				"--disable-gpu",
+				"--window-size=1920,1080",
+				"--hide-scrollbars",
+				"--mute-audio",
+				"--disable-blink-features=AutomationControlled",
+				"--disable-web-security",
+				"--disable-features=VizDisplayCompositor",
+				"--start-maximized",
+				"--disable-background-timer-throttling",
+				"--disable-backgrounding-occluded-windows",
+				"--disable-renderer-backgrounding",
+				"--disable-features=TranslateUI",
+				"--disable-ipc-flooding-protection",
+				// Snap-specific arguments
+				"--password-store=basic",
+				"--use-mock-keychain",
+				"--disable-extensions",
+				"--disable-plugins",
+				"--disable-default-apps",
+				"--disable-sync",
+				"--disable-translate",
+				"--disable-background-networking",
+				"--disable-client-side-phishing-detection",
+				"--disable-crash-reporter",
+				"--disable-oopr-debug-crash-dump",
+				"--no-crash-upload",
+				"--disable-gpu-sandbox",
+				"--disable-software-rasterizer",
+				"--disable-background-mode"
+			],
+			ignoreHTTPSErrors: true,
+			dumpio: false
+		});
 		const page = await browser.newPage();
 		page.goto("https://revolt.onech.at/");
 
@@ -1104,7 +1149,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		console.log({ id, content, page });
 		try {
 			await page.exposeFunction("generate_nonce", generate_nonce);
-		} catch (error) {}
+		} catch (error) { }
 
 		return await page.evaluate(
 			async (id, content, token) => {
