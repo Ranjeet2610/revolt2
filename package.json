@@ -4,6 +4,14 @@
   "main": "puppeteer_revolt.js",
   "scripts": {
     "start": "node puppeteer_revolt.js",
+    "start:aws": "node puppeteer_revolt.js --user aws-bot --headless=true",
+    "start:pm2": "pm2 start ecosystem.config.js --env production",
+    "stop:pm2": "pm2 stop revolt-bot",
+    "restart:pm2": "pm2 restart revolt-bot",
+    "logs:pm2": "pm2 logs revolt-bot",
+    "docker:build": "docker build -t revolt-bot .",
+    "docker:run": "docker run -d -p 3000-50000:3000-50000 --name revolt-bot revolt-bot",
+    "docker:compose": "docker-compose up -d",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

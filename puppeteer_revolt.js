@@ -19,6 +19,17 @@ import { generateSlug } from "random-word-slugs";
 
 const bot_version = "revolt bot v4.26.2025.1128am-puppeteer";
 
+// AWS IP detection function
+async function getAWSInstanceIP() {
+	try {
+		const response = await axios.get('http://169.254.169.254/latest/meta-data/public-ipv4', { timeout: 2000 });
+		return response.data;
+	} catch (error) {
+		console.log("Could not detect AWS public IP, using localhost");
+		return 'localhost';
+	}
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 if (process.platform == "win32") {
@@ -539,14 +550,22 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		const launch_mode = force_headful ? 'headful' : (IS_HEADLESS ? 'headless' : 'headful');
 		console.log(`🔧 Launching Chrome in ${launch_mode} mode (restart #${browser_restart_count})`);
 
-		// Try different Chrome/Chromium paths
+		// Try different Chrome/Chromium paths (AWS-optimized)
 		const possiblePaths = [
 			process.env.CHROME_PATH,
+			process.env.PUPPETEER_EXECUTABLE_PATH,
+			// AWS/Linux paths
+			'/usr/bin/chromium-browser',
+			'/usr/bin/google-chrome-stable',
+			'/usr/bin/google-chrome',
+			'/opt/google/chrome/chrome',
+			// Snap paths (Ubuntu)
 			'/snap/chromium/current/usr/lib/chromium-browser/chrome',
 			'/snap/chromium/current/usr/lib/chromium-browser/chromium-browser',
-			'/usr/bin/chromium-browser',
-			'/usr/bin/google-chrome',
-			'/usr/bin/google-chrome-stable'
+			// Alternative paths
+			'/usr/bin/chromium',
+			'/usr/local/bin/chromium-browser',
+			'/usr/local/bin/google-chrome-stable'
 		];
 
 		let executablePath = null;
@@ -1652,13 +1671,17 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 	try {
 		addLog({ type: "DebugMessage", message: "Trying to start bot dashboard server" });
 
-		server.listen(port, () => {
-			console.log(`Now listening to: http://13.232.150.98:${port}`);
+		server.listen(port, async () => {
+			// Detect AWS instance IP or use localhost
+			const instanceIP = await getAWSInstanceIP();
+			const serverURL = `http://${instanceIP}:${port}`;
+
+			console.log(`Now listening to: ${serverURL}`);
 			// Only open browser window for individual bot instances, not for multi-bot mode
-			if (IDENTIFIER_USER && !IDENTIFIER_USER.startsWith('server-')) {
-				open(`http://13.232.150.98:${port}`);
+			if (IDENTIFIER_USER && !IDENTIFIER_USER.startsWith('server-') && process.env.AWS_DEPLOYMENT !== 'true') {
+				open(serverURL);
 			}
-			addLog({ type: "DebugMessage", message: `Now listening to: http://13.232.150.98:${port}` });
+			addLog({ type: "DebugMessage", message: `Now listening to: ${serverURL}` });
 		});
 	} catch (error) {
 		if (error.code == "ERR_SERVER_ALREADY_LISTEN") {
@@ -1830,10 +1853,16 @@ global_app.post("/api/add_server", async (req, res) => {
 	emit_server_info();
 });
 
-global_server.listen(port, () => {
-	console.log(`Now listening to: http://13.232.150.98:${port}`);
-	// Only open browser window once for the global multi-bot dashboard
-	open(`http://13.232.150.98:${port}`);
+global_server.listen(port, async () => {
+	// Detect AWS instance IP or use localhost
+	const instanceIP = await getAWSInstanceIP();
+	const serverURL = `http://${instanceIP}:${port}`;
+
+	console.log(`Now listening to: ${serverURL}`);
+	// Only open browser window once for the global multi-bot dashboard (not on AWS)
+	if (process.env.AWS_DEPLOYMENT !== 'true') {
+		open(serverURL);
+	}
 
 	emit_server_info();
 });

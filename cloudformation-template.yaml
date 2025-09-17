@@ -1,0 +1,169 @@
+# =============================================================================
+# AWS CloudFormation Template for Revolt Bot
+# =============================================================================
+# This template creates all necessary AWS resources for the Revolt bot
+# =============================================================================
+
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Revolt Bot AWS Infrastructure'
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    AllowedValues:
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+    Description: EC2 instance type for the bot
+
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair to enable SSH access
+
+  BotUsername:
+    Type: String
+    Default: aws-bot
+    Description: Username for the bot instance
+
+  AllowedCIDR:
+    Type: String
+    Default: 0.0.0.0/0
+    Description: CIDR block allowed to access the bot dashboard
+
+Resources:
+  # Security Group
+  RevoltBotSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for Revolt Bot
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedCIDR
+          Description: SSH access
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 50000
+          CidrIp: !Ref AllowedCIDR
+          Description: Bot dashboard access
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: !Ref AllowedCIDR
+          Description: HTTP access
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref AllowedCIDR
+          Description: HTTPS access
+
+  # IAM Role for EC2
+  RevoltBotRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
+
+  # Instance Profile
+  RevoltBotInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref RevoltBotRole
+
+  # Launch Template
+  RevoltBotLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: revolt-bot-template
+      LaunchTemplateData:
+        ImageId: ami-0c02fb55956c7d316  # Ubuntu 22.04 LTS
+        InstanceType: !Ref InstanceType
+        KeyName: !Ref KeyPairName
+        IamInstanceProfile:
+          Arn: !GetAtt RevoltBotInstanceProfile.Arn
+        SecurityGroupIds:
+          - !Ref RevoltBotSecurityGroup
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash
+            apt-get update
+            apt-get install -y git curl wget
+            
+            # Install Node.js
+            curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+            apt-get install -y nodejs
+            
+            # Install Chromium
+            apt-get install -y chromium-browser
+            
+            # Install PM2
+            npm install -g pm2
+            
+            # Clone repository (replace with your repo)
+            git clone https://github.com/yourusername/revolt2.git /opt/revolt-bot
+            cd /opt/revolt-bot
+            
+            # Install dependencies
+            npm install
+            
+            # Make scripts executable
+            chmod +x aws-start.sh
+            
+            # Start the bot
+            ./aws-start.sh ${BotUsername}
+
+  # EC2 Instance
+  RevoltBotInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+        LaunchTemplateId: !Ref RevoltBotLaunchTemplate
+        Version: !GetAtt RevoltBotLaunchTemplate.LatestVersionNumber
+      Tags:
+        - Key: Name
+          Value: RevoltBot
+        - Key: Environment
+          Value: Production
+
+  # CloudWatch Log Group
+  RevoltBotLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/ec2/revolt-bot
+      RetentionInDays: 30
+
+Outputs:
+  InstanceId:
+    Description: Instance ID of the Revolt Bot
+    Value: !Ref RevoltBotInstance
+    Export:
+      Name: !Sub ${AWS::StackName}-InstanceId
+
+  PublicIP:
+    Description: Public IP address of the Revolt Bot
+    Value: !GetAtt RevoltBotInstance.PublicIp
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicIP
+
+  PublicDNS:
+    Description: Public DNS name of the Revolt Bot
+    Value: !GetAtt RevoltBotInstance.PublicDnsName
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicDNS
+
+  DashboardURL:
+    Description: URL to access the bot dashboard
+    Value: !Sub 'http://${RevoltBotInstance.PublicIp}:3000'
+    Export:
+      Name: !Sub ${AWS::StackName}-DashboardURL

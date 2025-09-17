@@ -1,0 +1,66 @@
+# =============================================================================
+# Revolt Bot - Docker Compose Configuration
+# =============================================================================
+# This file allows easy deployment of the Revolt bot using Docker Compose
+# =============================================================================
+
+version: '3.8'
+
+services:
+  revolt-bot:
+    build: .
+    container_name: revolt-bot
+    restart: unless-stopped
+    ports:
+      - "3000-50000:3000-50000"
+    environment:
+      - NODE_ENV=production
+      - AWS_DEPLOYMENT=true
+      - CHROME_PATH=/usr/bin/chromium-browser
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+    volumes:
+      - ./bot-data:/app/bot-data
+      - ./logs:/app/logs
+    networks:
+      - revolt-network
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/bot_version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: revolt-bot-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - revolt-bot
+    networks:
+      - revolt-network
+
+networks:
+  revolt-network:
+    driver: bridge
+
+volumes:
+  bot-data:
+  logs:
