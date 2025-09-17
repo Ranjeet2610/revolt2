@@ -630,7 +630,21 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		browser_initialized = true;
 
 		const page = await browser.newPage();
-		page.goto("https://revolt.onech.at/");
+		// Navigate to Revolt with AWS-specific handling
+		try {
+			await page.goto("https://revolt.onech.at/", {
+				waitUntil: 'networkidle2',
+				timeout: 30000
+			});
+			addLog({ type: "DebugMessage", message: "Successfully navigated to Revolt website" });
+		} catch (error) {
+			addLog({ type: "ErrorMessage", message: `Failed to navigate to Revolt: ${error.message}` });
+			// Try alternative approach
+			await page.goto("https://revolt.onech.at/", {
+				waitUntil: 'domcontentloaded',
+				timeout: 15000
+			});
+		}
 
 		// Set a timeout to prevent infinite loops
 		auth_timeout = setTimeout(async () => {
