@@ -1671,7 +1671,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 	try {
 		addLog({ type: "DebugMessage", message: "Trying to start bot dashboard server" });
 
-		server.listen(port, async () => {
+		server.listen(port, '0.0.0.0', async () => {
 			// Detect AWS instance IP or use 13.232.150.98
 			const instanceIP = await getAWSInstanceIP();
 			const serverURL = `http://${instanceIP}:${port}`;
@@ -1853,7 +1853,7 @@ global_app.post("/api/add_server", async (req, res) => {
 	emit_server_info();
 });
 
-global_server.listen(port, async () => {
+global_server.listen(port, '0.0.0.0', async () => {
 	// Detect AWS instance IP or use 13.232.150.98
 	const instanceIP = await getAWSInstanceIP();
 	const serverURL = `http://${instanceIP}:${port}`;
