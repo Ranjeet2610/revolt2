@@ -15,9 +15,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     # Chromium browser
     chromium-browser \
-    # Additional dependencies for Chromium
+    # Additional dependencies for Chromium (Ubuntu 22.04 compatible)
     fonts-liberation \
-    libasound2 \
+    libasound2t64 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
     libatspi2.0-0 \
@@ -35,6 +35,8 @@ RUN apt-get update && apt-get install -y \
     libxss1 \
     libxtst6 \
     xdg-utils \
+    libxkbcommon0 \
+    libgbm1 \
     # Additional utilities
     curl \
     wget \

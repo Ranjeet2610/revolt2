@@ -74,10 +74,10 @@ install_aws_deps() {
         print_status "PM2 is already installed: $(pm2 --version)"
     fi
     
-    # Install additional dependencies for AWS
+    # Install additional dependencies for AWS (Ubuntu 22.04 compatible)
     sudo apt install -y \
         fonts-liberation \
-        libasound2 \
+        libasound2t64 \
         libatk-bridge2.0-0 \
         libatk1.0-0 \
         libatspi2.0-0 \
@@ -94,7 +94,9 @@ install_aws_deps() {
         libxrandr2 \
         libxss1 \
         libxtst6 \
-        xdg-utils
+        xdg-utils \
+        libxkbcommon0 \
+        libgbm1
     
     print_status "All AWS dependencies installed successfully"
 }
