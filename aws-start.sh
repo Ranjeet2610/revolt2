@@ -123,8 +123,8 @@ get_aws_ip() {
         print_status "AWS public IP detected: $PUBLIC_IP"
         echo "$PUBLIC_IP"
     else
-        print_warning "Could not detect AWS public IP, using localhost"
-        echo "localhost"
+        print_warning "Could not detect AWS public IP, using 13.232.150.98"
+        echo "13.232.150.98"
     fi
 }
 

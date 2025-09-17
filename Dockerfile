@@ -75,7 +75,7 @@ EXPOSE 3000-50000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/api/bot_version || exit 1
+    CMD curl -f http://13.232.150.98:3000/api/bot_version || exit 1
 
 # Default command - start the bot in headless mode
 CMD ["node", "puppeteer_revolt.js", "--user", "docker-bot", "--headless=true"]
