@@ -103,7 +103,7 @@ node puppeteer_revolt.js --user YOUR_USERNAME
 - 🎯 Channel-based response system
 - ⚡ Real-time messaging and server management
 - 🛡️ Stealth mode with Puppeteer
-- 🌐 Web interface for configuration (runs on localhost)
+- 🌐 Web interface for configuration (runs on 13.232.150.98)
 - 📊 Server monitoring and logging
 
 ## Troubleshooting
@@ -129,7 +129,7 @@ node puppeteer_revolt.js --user YOUR_USERNAME
 4. **Port already in use**
    - The application will automatically find an available port
    - Check the console output for the actual port number
-   - Access the web dashboard at `http://localhost:PORT`
+   - Access the web dashboard at `http://13.232.150.98:PORT`
 
 ### File Structure
 ```

@@ -94,7 +94,7 @@ start_application() {
     local username=${1:-"testuser"}
     
     print_info "Starting Revolt Bot for user: $username"
-    print_info "The application will be available at http://localhost:PORT"
+    print_info "The application will be available at http://13.232.150.98:PORT"
     print_info "Press Ctrl+C to stop the application"
     echo "=================================="
     

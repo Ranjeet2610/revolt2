@@ -22,7 +22,7 @@
 ✅ **Installs npm dependencies** (if not installed)  
 ✅ **Starts the Revolt Bot** with your username  
 ✅ **Opens Chromium browser** for Revolt login  
-✅ **Shows web dashboard** at http://localhost:PORT  
+✅ **Shows web dashboard** at http://13.232.150.98:PORT  
 
 ## Requirements:
 

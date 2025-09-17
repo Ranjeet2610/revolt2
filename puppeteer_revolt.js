@@ -1653,12 +1653,12 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		addLog({ type: "DebugMessage", message: "Trying to start bot dashboard server" });
 
 		server.listen(port, () => {
-			console.log(`Now listening to: http://localhost:${port}`);
+			console.log(`Now listening to: http://13.232.150.98:${port}`);
 			// Only open browser window for individual bot instances, not for multi-bot mode
 			if (IDENTIFIER_USER && !IDENTIFIER_USER.startsWith('server-')) {
-				open(`http://localhost:${port}`);
+				open(`http://13.232.150.98:${port}`);
 			}
-			addLog({ type: "DebugMessage", message: `Now listening to: http://localhost:${port}` });
+			addLog({ type: "DebugMessage", message: `Now listening to: http://13.232.150.98:${port}` });
 		});
 	} catch (error) {
 		if (error.code == "ERR_SERVER_ALREADY_LISTEN") {
@@ -1684,7 +1684,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 
 	// 	if (key.name === "u") {
 	// 		console.log(`--------------------------`);
-	// 		console.log(`http://localhost:${port}`);
+	// 		console.log(`http://13.232.150.98:${port}`);
 	// 		console.log(`--------------------------`);
 	// 	}
 	// });
@@ -1831,9 +1831,9 @@ global_app.post("/api/add_server", async (req, res) => {
 });
 
 global_server.listen(port, () => {
-	console.log(`Now listening to: http://localhost:${port}`);
+	console.log(`Now listening to: http://13.232.150.98:${port}`);
 	// Only open browser window once for the global multi-bot dashboard
-	open(`http://localhost:${port}`);
+	open(`http://13.232.150.98:${port}`);
 
 	emit_server_info();
 });
@@ -1847,7 +1847,7 @@ rl.input.on("keypress", async (char, key) => {
 
 	if (key.name === "u") {
 		console.log(`--------------------------`);
-		console.log(`http://localhost:${port}`);
+		console.log(`http://13.232.150.98:${port}`);
 		console.log(`--------------------------`);
 	}
 });
