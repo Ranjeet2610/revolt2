@@ -30,7 +30,7 @@ if (process.platform == "win32") {
 const args = argsParser(process.argv);
 var ports = {};
 
-// Check for headless mode override - default to false for testing
+// Check for headless mode override - default to true for normal operation
 const IS_HEADLESS_OVERRIDE = args.headless !== undefined ? args.headless === 'true' : false;
 
 const rl = createInterface({
@@ -102,6 +102,13 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 	const io = new Server(server);
 	var browser = "";
 	var global_page = "";
+	var browser_initialized = false; // Flag to prevent multiple browser launches
+	var login_restart_done = false; // Flag to prevent multiple login restarts
+	var browser_restart_count = 0; // Counter to track browser restarts
+	var max_restarts = 1; // Maximum number of restarts allowed (reduced to 1)
+	var last_restart_time = 0; // Timestamp of last restart
+	var auth_timeout = null; // Timeout for authentication
+	var restart_disabled = false; // Flag to completely disable restarts
 
 	var clientInfo = { servers: [], firstStart: true };
 	var force_headful = false;
@@ -504,8 +511,33 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 	}
 
 	async function initialize_puppeteer() {
+		// Prevent multiple browser launches
+		if (browser_initialized && browser) {
+			console.log("🔧 Browser already initialized, skipping...");
+			return;
+		}
+
+		// Check restart limits
+		const current_time = Date.now();
+		if (browser_restart_count >= max_restarts || restart_disabled) {
+			console.log("❌ Maximum browser restarts reached or restarts disabled. Stopping to prevent infinite loop.");
+			addLog({ type: "FatalError", message: "Maximum browser restarts reached. Please check your Revolt login or restart the application." });
+			return;
+		}
+
+		// Check if we're restarting too frequently (within 5 seconds)
+		if (current_time - last_restart_time < 5000) {
+			console.log("⚠️ Restarting too frequently, waiting...");
+			await new Promise(resolve => setTimeout(resolve, 2000));
+		}
+
+		// Increment restart counter and update timestamp
+		browser_restart_count++;
+		last_restart_time = current_time;
+
 		// Initialize Puppeteer and create a new page
-		console.log(`🔧 Launching Chrome in ${force_headful ? 'headful' : IS_HEADLESS ? 'headless' : 'headful'} mode`);
+		const launch_mode = force_headful ? 'headful' : (IS_HEADLESS ? 'headless' : 'headful');
+		console.log(`🔧 Launching Chrome in ${launch_mode} mode (restart #${browser_restart_count})`);
 
 		// Try different Chrome/Chromium paths
 		const possiblePaths = [
@@ -530,6 +562,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		}
 
 		console.log(`🔧 Using browser: ${executablePath}`);
+		console.log(`🔧 Browser settings: force_headful=${force_headful}, IS_HEADLESS=${IS_HEADLESS}, final_mode=${force_headful ? 'headful' : (IS_HEADLESS ? 'headless' : 'headful')}`);
 
 		browser = await puppeteer.launch({
 			userDataDir: `/tmp/revolt-bot-${IDENTIFIER_USER}-${Date.now()}`,
@@ -573,8 +606,27 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 			ignoreHTTPSErrors: true,
 			dumpio: false
 		});
+
+		// Set flag to prevent multiple browser launches
+		browser_initialized = true;
+
 		const page = await browser.newPage();
 		page.goto("https://revolt.onech.at/");
+
+		// Set a timeout to prevent infinite loops
+		auth_timeout = setTimeout(async () => {
+			if (browser_restart_count >= max_restarts) {
+				console.log("⏰ Authentication timeout reached. Stopping browser to prevent infinite loop.");
+				addLog({ type: "FatalError", message: "Authentication timeout. Please check your Revolt login credentials." });
+				try {
+					await browser.close();
+					browser_initialized = false;
+					browser = "";
+				} catch (error) {
+					console.log("Error closing browser:", error.message);
+				}
+			}
+		}, 60000); // 60 second timeout
 
 		addLog({ type: "DebugMessage", message: "Puppeteer browser has launched. Bot dashboard panel will open once Revolt account is authenticated." });
 		addLog({ type: "DebugMessage", message: `Puppeteer browser is currently running in ${(force_headful ? false : IS_HEADLESS) ? "Headless" : "Headful"} mode` });
@@ -597,6 +649,12 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 				var parsed = JSON.parse(response.payloadData);
 
 				if (parsed.type == "Authenticate") {
+					// Clear the authentication timeout
+					if (auth_timeout) {
+						clearTimeout(auth_timeout);
+						auth_timeout = null;
+					}
+
 					global_page = page;
 					token = parsed.token;
 					if (force_headful) {
@@ -606,6 +664,11 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 						setTimeout(async () => {
 							await page.close();
 							await browser.close();
+
+							// Reset browser initialization flag and login restart flag
+							browser_initialized = false;
+							browser = "";
+							login_restart_done = false;
 
 							ports[IDENTIFIER_USER] = {
 								user: IDENTIFIER_USER,
@@ -618,6 +681,9 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 						}, 1000);
 					} else {
 						addLog({ type: "DebugMessage", message: "Successfully authenticated." });
+						// Reset restart counter on successful authentication
+						browser_restart_count = 0;
+						login_restart_done = false;
 					}
 				}
 			}
@@ -637,10 +703,12 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		});
 
 		page.on("framenavigated", async (frame) => {
-			if (frame.url().startsWith("https://revolt.onech.at/login") && !force_headful) {
+			if (frame.url().startsWith("https://revolt.onech.at/login") && !force_headful && !login_restart_done && browser_restart_count < max_restarts && !restart_disabled) {
 				force_headful = true;
+				login_restart_done = true; // Prevent multiple restarts
+				restart_disabled = true; // Disable further restarts
 				addLog({ type: "DebugMessage", message: `Revolt redirected to "/login"` });
-				addLog({ type: "DebugMessage", message: `Restarting Puppeteer browser in headful mode to show log in prompt` });
+				addLog({ type: "DebugMessage", message: `Restarting Puppeteer browser in headful mode to show log in prompt (LAST RESTART)` });
 
 				// Retrieve all cookies
 				const cookies = await page.cookies();
@@ -652,15 +720,27 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 
 				await page.goto("about:blank");
 
-				setTimeout(async () => {
-					await browser.close();
+				// Instead of restarting, just show a message and let user handle login
+				addLog({ type: "DebugMessage", message: `Please log in to Revolt in the browser window that opened. The bot will continue once authenticated.` });
+				addLog({ type: "DebugMessage", message: `If login fails, please restart the application.` });
 
-					await initialize_puppeteer();
-				}, 1000);
+				// Don't restart - just let the user handle the login
+				// setTimeout(async () => {
+				// 	await browser.close();
+				// 	
+				// 	// Reset browser initialization flag and login restart flag
+				// 	browser_initialized = false;
+				// 	browser = "";
+				// 	login_restart_done = false;
+
+				// 	await initialize_puppeteer();
+				// }, 1000);
 			}
-			if (((await page.content()).toLowerCase().includes("security of your connection") || (await page.content()).toLowerCase().includes("blocked")) && !force_headful) {
+			if (((await page.content()).toLowerCase().includes("security of your connection") || (await page.content()).toLowerCase().includes("blocked")) && !force_headful && !login_restart_done && browser_restart_count < max_restarts && !restart_disabled) {
 				addLog({ type: "DebugMessage", message: `Cloudflare detected. Restarting in headful mode` });
 				force_headful = true;
+				login_restart_done = true; // Prevent multiple restarts
+				restart_disabled = true; // Disable further restarts
 				// Retrieve all cookies
 				const cookies = await page.cookies();
 
@@ -670,11 +750,22 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 				}
 
 				await page.goto("about:blank");
-				setTimeout(async () => {
-					await browser.close();
 
-					await initialize_puppeteer();
-				}, 1000);
+				// Instead of restarting, just show a message and let user handle Cloudflare
+				addLog({ type: "DebugMessage", message: `Cloudflare detected. Please complete the security check in the browser window.` });
+				addLog({ type: "DebugMessage", message: `The bot will continue once the security check is completed.` });
+
+				// Don't restart - just let the user handle the Cloudflare check
+				// setTimeout(async () => {
+				// 	await browser.close();
+				// 	
+				// 	// Reset browser initialization flag and login restart flag
+				// 	browser_initialized = false;
+				// 	browser = "";
+				// 	login_restart_done = false;
+
+				// 	await initialize_puppeteer();
+				// }, 1000);
 			}
 		});
 
@@ -949,6 +1040,10 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 
 			if (!status) {
 				await browser.close();
+				// Reset browser initialization flag and login restart flag when closing
+				browser_initialized = false;
+				browser = "";
+				login_restart_done = false;
 				addLog({ type: "DebugMessage", message: `Puppeteer browser has been closed` });
 			} else {
 				initialize_puppeteer();
@@ -1559,7 +1654,10 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 
 		server.listen(port, () => {
 			console.log(`Now listening to: http://localhost:${port}`);
-			open(`http://localhost:${port}`);
+			// Only open browser window for individual bot instances, not for multi-bot mode
+			if (IDENTIFIER_USER && !IDENTIFIER_USER.startsWith('server-')) {
+				open(`http://localhost:${port}`);
+			}
 			addLog({ type: "DebugMessage", message: `Now listening to: http://localhost:${port}` });
 		});
 	} catch (error) {
@@ -1734,6 +1832,7 @@ global_app.post("/api/add_server", async (req, res) => {
 
 global_server.listen(port, () => {
 	console.log(`Now listening to: http://localhost:${port}`);
+	// Only open browser window once for the global multi-bot dashboard
 	open(`http://localhost:${port}`);
 
 	emit_server_info();
