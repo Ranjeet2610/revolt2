@@ -90,7 +90,7 @@ node puppeteer_revolt.js --user YOUR_USERNAME
 
 ### Command Line Arguments
 - `--user`: Required. Specify the username for the bot session
-- `--headless`: Optional. Run in headless mode (default: true)
+- `--headless`: Optional. Run in headless mode (default: false for testing)
 
 ### Example
 ```bash
