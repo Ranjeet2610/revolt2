@@ -26,7 +26,7 @@ USERNAME=${1:-"aws-bot"}
 
 echo "🚀 Starting bot for user: $USERNAME"
 echo "📡 Bot will now listen on all interfaces (0.0.0.0)"
-echo "🌐 Access your bot at: http://13.232.150.98:PORT"
+echo "🌐 Access your bot at: http://43.205.112.153:PORT"
 echo ""
 echo "Press Ctrl+C to stop the bot"
 echo "================================"

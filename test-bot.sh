@@ -23,7 +23,7 @@ if pgrep -f "puppeteer_revolt.js" > /dev/null; then
     PORT=$(grep "Now listening to:" bot.log | tail -1 | grep -o '[0-9]\+' | tail -1)
     if [ -n "$PORT" ]; then
         echo "✅ Bot is listening on port: $PORT"
-        echo "🌐 Try accessing: http://13.232.150.98:$PORT"
+        echo "🌐 Try accessing: http://43.205.112.153:$PORT"
         
         # Test local connection
         if curl -s --max-time 5 "http://localhost:$PORT/api/bot_version" > /dev/null; then
@@ -42,6 +42,6 @@ fi
 
 echo ""
 echo "📋 Next steps:"
-echo "1. Try accessing: http://13.232.150.98:$PORT"
+echo "1. Try accessing: http://43.205.112.153:$PORT"
 echo "2. If still not working, check AWS Security Group"
 echo "3. Make sure port $PORT is open in AWS Security Group"

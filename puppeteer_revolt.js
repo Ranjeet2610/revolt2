@@ -25,8 +25,8 @@ async function getAWSInstanceIP() {
 		const response = await axios.get('http://169.254.169.254/latest/meta-data/public-ipv4', { timeout: 2000 });
 		return response.data;
 	} catch (error) {
-		console.log("Could not detect AWS public IP, using 13.232.150.98");
-		return '13.232.150.98';
+		console.log("Could not detect AWS public IP, using 43.205.112.153");
+		return '43.205.112.153';
 	}
 }
 
@@ -1686,7 +1686,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 		addLog({ type: "DebugMessage", message: "Trying to start bot dashboard server" });
 
 		server.listen(port, '0.0.0.0', async () => {
-			// Detect AWS instance IP or use 13.232.150.98
+			// Detect AWS instance IP or use 43.205.112.153
 			const instanceIP = await getAWSInstanceIP();
 			const serverURL = `http://${instanceIP}:${port}`;
 
@@ -1721,7 +1721,7 @@ async function start_everything(IDENTIFIER_USER, IS_HEADLESS = IS_HEADLESS_OVERR
 
 	// 	if (key.name === "u") {
 	// 		console.log(`--------------------------`);
-	// 		console.log(`http://13.232.150.98:${port}`);
+	// 		console.log(`http://43.205.112.153:${port}`);
 	// 		console.log(`--------------------------`);
 	// 	}
 	// });
@@ -1868,7 +1868,7 @@ global_app.post("/api/add_server", async (req, res) => {
 });
 
 global_server.listen(port, '0.0.0.0', async () => {
-	// Detect AWS instance IP or use 13.232.150.98
+	// Detect AWS instance IP or use 43.205.112.153
 	const instanceIP = await getAWSInstanceIP();
 	const serverURL = `http://${instanceIP}:${port}`;
 
@@ -1890,7 +1890,7 @@ rl.input.on("keypress", async (char, key) => {
 
 	if (key.name === "u") {
 		console.log(`--------------------------`);
-		console.log(`http://13.232.150.98:${port}`);
+		console.log(`http://43.205.112.153:${port}`);
 		console.log(`--------------------------`);
 	}
 });

@@ -1992,7 +1992,7 @@ class On extends Me {
       s.hostname && !s.port && (s.port = this.secure ? "443" : "80"),
       (this.hostname =
         s.hostname ||
-        (typeof location < "u" ? location.hostname : "13.232.150.98")),
+        (typeof location < "u" ? location.hostname : "43.205.112.153")),
       (this.port =
         s.port ||
         (typeof location < "u" && location.port
@@ -2038,7 +2038,7 @@ class On extends Me {
             this._beforeunloadEventListener,
             !1
           )),
-        this.hostname !== "13.232.150.98" &&
+        this.hostname !== "43.205.112.153" &&
         ((this._offlineEventListener = () => {
           this._onClose("transport close", {
             description: "network connection lost",

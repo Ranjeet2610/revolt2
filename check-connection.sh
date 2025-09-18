@@ -10,7 +10,7 @@ echo "🔍 Revolt Bot Connection Troubleshooting"
 echo "========================================"
 
 # Get the current IP
-CURRENT_IP=$(curl -s --max-time 5 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "13.232.150.98")
+CURRENT_IP=$(curl -s --max-time 5 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "43.205.112.153")
 echo "📍 Current IP: $CURRENT_IP"
 
 # Check if the bot is running

@@ -35,7 +35,7 @@ services:
           cpus: '0.5'
     # Health check
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://13.232.150.98:3000/api/bot_version"]
+      test: ["CMD", "curl", "-f", "http://43.205.112.153:3000/api/bot_version"]
       interval: 30s
       timeout: 10s
       retries: 3

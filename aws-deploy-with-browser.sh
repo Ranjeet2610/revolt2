@@ -36,7 +36,7 @@ get_aws_ip() {
     if PUBLIC_IP=$(curl -s --max-time 5 http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null); then
         echo "$PUBLIC_IP"
     else
-        echo "13.232.150.98"
+        echo "43.205.112.153"
     fi
 }
 
