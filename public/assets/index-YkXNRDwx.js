@@ -1992,14 +1992,14 @@ class On extends Me {
       s.hostname && !s.port && (s.port = this.secure ? "443" : "80"),
       (this.hostname =
         s.hostname ||
-        (typeof location < "u" ? location.hostname : "13.232.150.98")),
+        (typeof location < "u" ? location.hostname : "localhost")),
       (this.port =
         s.port ||
         (typeof location < "u" && location.port
           ? location.port
           : this.secure
-            ? "443"
-            : "80")),
+          ? "443"
+          : "80")),
       (this.transports = []),
       (this._transportsByName = {}),
       s.transports.forEach((o) => {
@@ -2026,24 +2026,24 @@ class On extends Me {
         this.opts.path.replace(/\/$/, "") +
         (this.opts.addTrailingSlash ? "/" : "")),
       typeof this.opts.query == "string" &&
-      (this.opts.query = Q2(this.opts.query)),
+        (this.opts.query = Q2(this.opts.query)),
       Cu &&
-      (this.opts.closeOnBeforeunload &&
-        ((this._beforeunloadEventListener = () => {
-          this.transport &&
-            (this.transport.removeAllListeners(), this.transport.close());
-        }),
+        (this.opts.closeOnBeforeunload &&
+          ((this._beforeunloadEventListener = () => {
+            this.transport &&
+              (this.transport.removeAllListeners(), this.transport.close());
+          }),
           addEventListener(
             "beforeunload",
             this._beforeunloadEventListener,
             !1
           )),
-        this.hostname !== "13.232.150.98" &&
-        ((this._offlineEventListener = () => {
-          this._onClose("transport close", {
-            description: "network connection lost",
-          });
-        }),
+        this.hostname !== "localhost" &&
+          ((this._offlineEventListener = () => {
+            this._onClose("transport close", {
+              description: "network connection lost",
+            });
+          }),
           ao.push(this._offlineEventListener))),
       this.opts.withCredentials && (this._cookieJar = void 0),
       this._open();

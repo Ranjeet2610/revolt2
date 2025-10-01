@@ -37,7 +37,7 @@ fi
 
 echo ""
 echo "Starting Revolt Bot..."
-echo "The application will open in your browser at http://13.232.150.98:PORT"
+echo "The application will open in your browser at http://localhost:PORT"
 echo ""
 echo "Chromium will open in visible mode by default for testing."
 echo "To run in headless mode, add --headless=true to the command"
